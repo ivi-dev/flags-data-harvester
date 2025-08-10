@@ -6,7 +6,7 @@
         "collection": "countries",
         "user": "root",
         "pass": "root",
-        "host": "flags-db",
+        "host": "flags-db-1",
         "port": 27017,
         "connectTimeout": 10000
     },
