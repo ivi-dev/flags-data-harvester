@@ -24,9 +24,9 @@ def load_config():
         with open("config.json") as config_file:
             return json.load(config_file)
     except FileNotFoundError:
-        print("Config file not found.")
+        raise Exception("Config file not found.")
     except json.JSONDecodeError:
-        print("Error decoding JSON from config file.")
+        raise Exception("Error decoding JSON from config file.")
 
 
 def init_data_dir():
@@ -222,16 +222,16 @@ def log_error(log, err):
     log.write(f"Error details:\n{"\n".join(traceback.format_exception(err))}\n")
 
 
+start_time = datetime.now(timezone.utc)
+storage = "db"
 try:
     config = load_config()
     with requests.Session() as session:
-        start_time = datetime.now(timezone.utc)
         table = get_data_table(session)
         n_harvested = 0
         init_data_dir()
         corrections = load_corrections()
         start, end = 1, len(table) # Skip the first row, which is the table's header
-        storage = "db"
         for i in range(start, end):
             is_primary_flag_row = table[i].find("th") is not None
             if is_primary_flag_row:
@@ -244,3 +244,4 @@ try:
         log_harvest('success', storage, start_time, n_harvested)
 except Exception as e:
     log_harvest('failure', storage, start_time, err=e)
+    raise
