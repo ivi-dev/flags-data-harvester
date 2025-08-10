@@ -1,0 +1,14 @@
+{
+    "dataUrl": "https://en.wikipedia.org/wiki/List_of_national_flags_of_sovereign_states",
+    "dataPath": "data",
+    "db": {
+        "name": "flags",
+        "collection": "countries",
+        "user": "root",
+        "pass": "root",
+        "host": "flags-db",
+        "port": 27017,
+        "connectTimeout": 10000
+    },
+    "iso3166ColId": "ISO 3166-2"
+}

@@ -1,0 +1,47 @@
+{
+    "Czech Republic": {
+        "name": {
+            "en": ["Czechia"]
+        }
+    },
+    "Democratic Republic of the Congo": {
+        "name": {
+            "en": ["Democratic Republic of Congo", "DR Congo", "DRC"]
+        }
+    },
+    "Republic of the Congo": {
+        "name": {
+            "en": ["Congo", "Republic of Congo"]
+        }
+    },
+    "North Korea": {
+        "name": {
+            "en": ["Democratic People's Republic of Korea", "DPRK"]
+        }
+    },
+    "São Tomé and Príncipe": {
+        "name": {
+            "en": ["Sao Tome and Principe"]
+        }
+    },
+    "Turkey": {
+        "name": {
+            "en": ["Turkiye", "Türkiye"]
+        }
+    },
+    "United Arab Emirates": {
+        "name": {
+            "en": ["UAE"]
+        }
+    },
+    "United Kingdom": {
+        "name": {
+            "en": ["UK", "Great Britain"]
+        }
+    },
+    "United States": {
+        "name": {
+            "en": ["United States of America", "USA", "US"]
+        }
+    }
+}
