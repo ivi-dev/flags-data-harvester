@@ -2,4 +2,4 @@
 db
 scripts
 Dockerfile
-Log.txt
+logs
