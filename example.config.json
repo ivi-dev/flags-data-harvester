@@ -1,0 +1,23 @@
+{
+    "dataUrl": "",
+    "dataPath": "",
+    "db": {
+        "name": "",
+        "collection": "",
+        "user": "",
+        "pass": "",
+        "authSource": "",
+        "host": "",
+        "port": 0,
+        "connectTimeout": 0
+    },
+    "iso3166ColId": "",
+    "user-agent": {
+        "name": {
+            "human": "",
+            "machine": ""
+        },
+        "email": "",
+        "version": ""
+    }
+}
