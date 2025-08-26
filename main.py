@@ -1,8 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import json
 import os
 import re
-import shutil
 import traceback
 import requests
 from bs4 import BeautifulSoup
@@ -20,6 +20,14 @@ db = None
 countries = None
 
 
+@dataclass
+class Country:
+    name: str
+    iso: str
+    capital: str
+    flag: bytes
+
+
 def load_config():
     try:
         with open("config.json") as config_file:
@@ -35,7 +43,7 @@ def init_data_dir():
         os.makedirs(config["dataPath"])
 
 
-def update_country_record(dest, country_name, country_iso, country_flag):
+def update_country_record(dest, country):
     def update_db():
         global db, db_client, countries
         if db_client is None:
@@ -52,7 +60,7 @@ def update_country_record(dest, country_name, country_iso, country_flag):
             db_client = pymongo.MongoClient(uri)
             db = db_client[config["db"]["name"]]
             countries = db.countries
-        update_country_db(country_name, country_iso, country_flag)
+        update_country_db(country)
 
     destinations = ["fs", "db", "fs-db"]
     if dest not in destinations:
@@ -61,53 +69,56 @@ def update_country_record(dest, country_name, country_iso, country_flag):
             f"Supported options: {','.join(destinations)}"
         )
     if dest == "fs":
-        update_country_dir(country_name, country_iso, country_flag)
+        update_country_dir(country)
     elif dest == "db":
         update_db()
     elif dest == "fs-db":
-        update_country_dir(country_name, country_iso, country_flag)
+        update_country_dir(country)
         update_db()
 
 
-def update_country_dir(country_name, country_iso, country_flag):
-    country_dir = os.path.join(config["dataPath"], country_name)
+def update_country_dir(country):
+    country_dir = os.path.join(config["dataPath"], country.name)
     if not os.path.exists(country_dir):
         os.makedirs(country_dir)
-    init_country_meta(country_dir, country_name, country_iso)
-    save_country_flag(country_dir, country_flag)
+    init_country_meta(country_dir, country)
+    save_country_flag(country_dir, country.flag)
 
 
-def update_country_db(country_name, country_iso, country_flag):
-    meta = get_country_meta(country_name, country_iso)
+def update_country_db(country):
+    meta = get_country_meta(country)
     countries.update_one(
         {
-            "name": country_name
+            "name": country.name
         }, 
         {
             "$set": {
                 "meta": meta, 
-                "flag": country_flag
+                "flag": country.flag
             }
         }, 
         upsert=True
     )
 
 
-def get_country_meta(country_name, country_iso):
+def get_country_meta(country):
     data = {
         "name": {
-            "en": [country_name]
+            "en": [country.name]
         },
-        "iso-3166": country_iso
+        "capital": {
+            "en": [country.capital]
+        },
+        "iso-3166": country.iso
     }
     if country_name in corrections:
-        deep_update(data, corrections[country_name])
+        deep_update(data, corrections[country.name])
     return data
 
 
-def init_country_meta(country_dir, country_name, country_iso):
+def init_country_meta(country_dir, country):
     with open(os.path.join(country_dir, "Meta.json"), "w") as meta:
-        data = get_country_meta(country_name, country_iso)
+        data = get_country_meta(country)
         meta.write(json.dumps(data, indent=4, ensure_ascii=False))
 
 
@@ -157,18 +168,32 @@ def request(url, method='GET', session=None):
     obj = session or requests
     meth = getattr(obj, method.lower())
     return meth(url, headers=headers)
-    
 
-def get_country_iso_code(tag, session=None):
+
+def get_country_soup(tag, session=None):
     link = f'https://en.wikipedia.org{tag.find("th").find("a")["href"]}'
     res = request(url=link, method='GET', session=session)
-    soup = BeautifulSoup(res.text, features="html.parser")
+    return BeautifulSoup(res.text, features="html.parser")
+    
+
+def get_country_iso_code(soup):
     table = soup.find("table", class_="infobox")
     data_cols = table.find_all("td", class_="infobox-data")
     for data_col in data_cols:
         iso_col = data_col.find(iso_3166_column)
         if iso_col:
             return iso_col.string
+
+
+def get_country_capital(soup):
+    table = soup.find("table", class_="infobox")
+    data_rows = table.find_all("tr")
+    for data_row in data_rows:
+        header = data_row.find("th")
+        if header and "Capital" in header.text:
+            data_col = data_row.find("td")
+            if data_col:
+                return data_col.find("a").text.strip()
         
 
 def get_country_flag(tag, session=None):
@@ -264,9 +289,17 @@ try:
             if is_primary_flag_row:
                 n_harvested += 1
                 country_name = get_country_name(table[i])
-                country_iso = get_country_iso_code(table[i], session)
+                soup = get_country_soup(table[i], session)
+                country_iso = get_country_iso_code(soup)
+                country_capital = get_country_capital(soup)
                 country_flag = get_country_flag(table[i], session)
-                update_country_record(storage, country_name, country_iso, country_flag)
+                country = Country(
+                    name=country_name,
+                    iso=country_iso,
+                    capital=country_capital,
+                    flag=country_flag
+                )
+                update_country_record(storage, country)
                 print_progress(table[i], n_harvested)
         log_harvest('success', storage, start_time, n_harvested)
 except Exception as e:

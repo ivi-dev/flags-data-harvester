@@ -43,5 +43,8 @@
         "name": {
             "en": ["United States of America", "USA", "US"]
         }
+    },
+    "Vatican City": {
+        "capital": null
     }
 }
