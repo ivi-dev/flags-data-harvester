@@ -4,11 +4,20 @@
     "db": {
         "name": "flags",
         "collection": "countries",
-        "user": "root",
-        "pass": "root",
+        "user": "data-harvester",
+        "pass": "4KznYDkGYqt1NOo",
+        "authSource": "flags",
         "host": "flags-db-1",
         "port": 27017,
         "connectTimeout": 10000
     },
-    "iso3166ColId": "ISO 3166-2"
+    "iso3166ColId": "ISO 3166-2",
+    "user-agent": {
+        "name": {
+            "human": "GuessTheFlagDataHarvesterBot",
+            "machine": "guess-the-flag-data-harvester"
+        },
+        "email": "info@mail.com",
+        "version": "1.0"
+    }
 }

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 import os
 import re
+import shutil
 import traceback
 import requests
 from bs4 import BeautifulSoup
@@ -38,18 +39,27 @@ def update_country_record(dest, country_name, country_iso, country_flag):
     def update_db():
         global db, db_client, countries
         if db_client is None:
-            db_client = pymongo.MongoClient(
-                host=config["db"]["host"],
-                username=config["db"]["user"],
-                password=config["db"]["pass"],
-                connectTimeoutMS=config["db"]["connectTimeout"],
-            )
+            uri = f'mongodb://' \
+                  f'{config["db"]["user"]}:' \
+                  f'{config["db"]["pass"]}@' \
+                  f'{config["db"]["host"]}:' \
+                  f'{config["db"]["port"]}/' \
+                  f'{config["db"]["name"]}?' \
+                  f'authSource={config["db"]["authSource"]}&' \
+                  f'connectTimeoutMS={config["db"]["connectTimeout"]}&' \
+                  'tls=true&' \
+                  'tlsCAFile=/etc/ssl/certs/flags/root.crt'
+            db_client = pymongo.MongoClient(uri)
             db = db_client[config["db"]["name"]]
             countries = db.countries
         update_country_db(country_name, country_iso, country_flag)
 
-    if dest not in ["fs", "db", "fs-db"]:
-        raise ValueError("Destination must be either 'fs' or 'db'.")
+    destinations = ["fs", "db", "fs-db"]
+    if dest not in destinations:
+        raise ValueError(
+            f"Unknown destination option '{dest}'. "
+            f"Supported options: {','.join(destinations)}"
+        )
     if dest == "fs":
         update_country_dir(country_name, country_iso, country_flag)
     elif dest == "db":
@@ -116,8 +126,7 @@ def iso_3166_column(tag):
 
 
 def get_data_table(session=None):
-    obj = session or requests
-    res = obj.get(config["dataUrl"])
+    res = request(url=config["dataUrl"], method='GET', session=session)
     soup = BeautifulSoup(res.text, features="html.parser")
     rows = soup.find("table", class_="wikitable").find("tbody").find_all("tr")
     return rows
@@ -129,12 +138,30 @@ def get_country_name(tag):
         return None
     else:
         return country_name.find("a").string
+
+
+def get_user_agent():
+    bot_name = {
+        'human': f'{config["user-agent"]["name"]["human"]}/{config["user-agent"]["version"]}',
+        'machine': f'{config["user-agent"]["name"]["machine"]}/{config["user-agent"]["version"]}'
+    }
+    return f'{bot_name["human"]} ' + \
+           f'({config["user-agent"]["email"]}) ' + \
+           f'{bot_name["machine"]}'
+
+
+def request(url, method='GET', session=None):
+    headers = {
+        'User-Agent': get_user_agent()
+    }
+    obj = session or requests
+    meth = getattr(obj, method.lower())
+    return meth(url, headers=headers)
     
 
 def get_country_iso_code(tag, session=None):
     link = f'https://en.wikipedia.org{tag.find("th").find("a")["href"]}'
-    obj = session or requests
-    res = obj.get(link)
+    res = request(url=link, method='GET', session=session)
     soup = BeautifulSoup(res.text, features="html.parser")
     table = soup.find("table", class_="infobox")
     data_cols = table.find_all("td", class_="infobox-data")
@@ -150,8 +177,7 @@ def get_country_flag(tag, session=None):
                   .replace("thumb/", "")
     match = re.search(r"https://.+?\.svg", flag_url)
     flag_url = flag_url[match.start():match.end()]
-    obj = session or requests
-    res = obj.get(flag_url)
+    res = request(url=flag_url, method='GET', session=session)
     return res.content
 
 
@@ -184,8 +210,9 @@ def formatted_now(fmt="%Y/%m/%d %H:%M:%S %Z"):
 def log_harvest(status, storage, start_time, n_harvested=None, err=None):
     if status.lower() not in ['success', 'failure']:
         raise ValueError("Status must be either 'success' or 'failure'.")
-    with open("Log.txt", "wt") as log:
-        log.write("HARVEST RESULTS:\n")
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
+    with open("logs/Harvest-Result.txt", "wt") as log:
         log.write(f"Harvest status: {status.upper()}\n")
         log.write(f"Date/time of completing harvest: {formatted_now()}\n")
         if status == "success":
