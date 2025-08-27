@@ -1,6 +1,5 @@
 FROM mongo:8
 
-COPY scripts/combine-cert-and-key.sh /root
 COPY scripts/dump-db.sh /root
 COPY scripts/restore-db.sh /root
 COPY scripts/*.js /docker-entrypoint-initdb.d
