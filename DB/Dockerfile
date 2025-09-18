@@ -1,8 +1,48 @@
-FROM mongo:8
+FROM ubuntu:noble
 
-COPY scripts/dump-db.sh /root
-COPY scripts/restore-db.sh /root
-COPY scripts/*.js /docker-entrypoint-initdb.d
-RUN mkdir -p /var/mongo/dumps
-COPY mongod.conf /etc/mongod.conf
-RUN chmod 755 /etc/ssl/private
+ENV MONGO_VERSION="8.0" \
+    SYSTEM_DB_USER="mongodb" \
+    SYSTEM_DB_GROUP="mongodb" \
+    DUMPS_PATH="/var/mongo/dumps" \
+    SSL_PATH="/etc/ssl/private" \ 
+    DATA_PATH="/data/db" \
+    LOG_PATH="/var/log/mongodb/mongod.log" \
+    PID_PATH="/var/run/mongodb/mongod.pid" \
+    CONFIG_PATH="/etc/mongod.conf"
+    
+
+# ========================================
+#             Install MongoDB
+# ========================================
+
+RUN apt-get clean && apt-get update && apt-get install -y gnupg curl
+RUN curl -fsSL https://www.mongodb.org/static/pgp/server-$MONGO_VERSION.asc | \
+    gpg -o /usr/share/keyrings/mongodb-server-$MONGO_VERSION.gpg --dearmor
+RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-$MONGO_VERSION.gpg ] \
+          https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/$MONGO_VERSION multiverse" | \
+    tee /etc/apt/sources.list.d/mongodb-org-$MONGO_VERSION.list
+RUN apt-get update && apt-get install -y mongodb-org
+RUN mkdir -p $DUMPS_PATH
+RUN chown $SYSTEM_DB_USER:$SYSTEM_DB_GROUP $DUMPS_PATH
+RUN chmod -R 704 $DUMPS_PATH
+RUN chmod o+rx $SSL_PATH
+COPY mongod.conf $CONFIG_PATH
+RUN chown $SYSTEM_DB_USER:$SYSTEM_DB_GROUP $CONFIG_PATH && \
+    chmod 700 $CONFIG_PATH
+
+
+# ========================================
+#       Initialize and start MongoDB
+# ========================================
+
+COPY scripts/setup-db.sh /root
+RUN mkdir -p /docker-entrypoint-initdb.d
+COPY scripts/dump-db.sh \
+     scripts/restore-db.sh \
+     /docker-entrypoint-initdb.d/
+RUN /root/setup-db.sh
+
+USER mongodb
+
+ENTRYPOINT [ "mongod" ]
+CMD [ "--config", "/etc/mongod.conf" ]
