@@ -23,11 +23,11 @@ RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-$M
     tee /etc/apt/sources.list.d/mongodb-org-$MONGO_VERSION.list
 RUN apt-get update && apt-get install -y mongodb-org
 RUN mkdir -p $DUMPS_PATH
-RUN chown $SYSTEM_DB_USER:$SYSTEM_DB_GROUP $DUMPS_PATH
+RUN chown $SYSTEM_DB_USER $DUMPS_PATH
 RUN chmod -R 704 $DUMPS_PATH
 RUN chmod o+rx $SSL_PATH
 COPY mongod.conf $CONFIG_PATH
-RUN chown $SYSTEM_DB_USER:$SYSTEM_DB_GROUP $CONFIG_PATH && \
+RUN chown $SYSTEM_DB_USER $CONFIG_PATH && \
     chmod 700 $CONFIG_PATH
 
 
@@ -42,7 +42,7 @@ COPY scripts/dump-db.sh \
      /docker-entrypoint-initdb.d/
 RUN /root/setup-db.sh
 
-USER mongodb
+USER $SYSTEM_DB_USER
 
 ENTRYPOINT [ "mongod" ]
 CMD [ "--config", "/etc/mongod.conf" ]
