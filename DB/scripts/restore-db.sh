@@ -12,9 +12,9 @@
 # -------------------
 # Params:
 # -------------------
-# --in - An optional dump directory to restore from. 
-#        If not specified, the latest dump in /var/mongo/dumps
-#        will be used.
+# --dump - An optional dump's name (a subdirectory of /var/mongo/dumps) 
+# 	       to restore from. If not specified, the latest dump in 
+# 		   /var/mongo/dumps will be used.
 # =====================================================================
 
 dump=
@@ -38,18 +38,18 @@ done
 # 2. Establish the dump's input directory
 latest_dump=
 if [ "$dump" == "" ]; then
-    if [ ! -d "/var/mongo/dumps" ]; then
-        echo "ERROR: No dumps directory found at /var/mongo/dumps." 
+    if [ ! -d "$DUMP_BASE_DIR" ]; then
+        echo "ERROR: No dumps base directory found at $DUMP_BASE_DIR." 
         exit 1
     fi
-    latest_dump=$(ls -t /var/mongo/dumps | head -n 1)
+    latest_dump=$(ls -t "$DUMP_BASE_DIR" | head -n 1)
     if [ "$latest_dump" == "" ]; then
-        echo "ERROR: No dumps found in /var/mongo/dumps." 
+        echo "ERROR: No database dumps found in $DUMP_BASE_DIR." 
         exit 1
     fi
-    dump="/var/mongo/dumps/$latest_dump"
+    dump="$DUMP_BASE_DIR/$latest_dump"
 else
-    if [ ! -d "$dump" ]; then
+    if [ ! -d "$DUMP_BASE_DIR/$dump" ]; then
         echo "ERROR: Specified dump directory $dump not found." 
         exit 1
     fi
@@ -57,8 +57,8 @@ fi
 
 # 3. Restore the cluster from the specified dump directory
 mongorestore --dir $dump \
-	         --username $(cat /run/secrets/db-root-user) \
-	         --password $(cat /run/secrets/db-root-pass) \
-	         --authenticationDatabase admin \
+	         --username $(cat $USER_NAME_FILE) \
+	         --password $(cat $USER_PASS_FILE) \
+	         --authenticationDatabase $AUTH_DB \
 	         --ssl \
-	         --sslCAFile /etc/ssl/certs/flags/cert.crt
+	         --sslCAFile $SSL_CA_FILE

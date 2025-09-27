@@ -1,53 +1,30 @@
 #!/bin/bash
 
 # =====================================================================
-# Dump the entire MongoDB cluster to a timestamped directory 
-# in the specified base directory.
-# 
-# If an output directory is not specified on the command-line
-# the dump will be placed into a default base directory at 
+# Dump the entire MongoDB cluster to a timestamped subdirectory of 
 # /var/mongo/dumps.
 # 
-# The root user's credentials, as read from the container's 
-# /run/secrets are used for the dump operation.
-#
-# -------------------
-# Params:
-# -------------------
-# --out - An optional base directory to place the dump into. 
-#         If not specified, the dump will be placed into 
-#	      /var/mongo/dumps.
+# The root DB user's credentials, as read from the container's 
+# /run/secrets will be used for the dump operation.
 # =====================================================================
 
-out=
-dump_dir="$(date '+%d.%m.%Y-%R:%S-%Z')"
-to_assign=
+dump_dir="$DUMP_BASE_DIR/$(date '+%d.%m.%Y-%R:%S-%Z')"
 
-# 1. Parse command-line parameters
-for arg in $@; do
-	if [ ${arg:0:2} == "--" ]; then 
-		option=${arg:2}
-		if [ $option == "out" ]; then
-			to_assign="out"
-			continue
-		fi
-	fi
-	case $to_assign in
-		"out")
-			out=$arg;;
-	esac
-done
+function set-dumps-base-perms () {
+	chown -R $SYSTEM_DB_USER $DUMP_BASE_DIR
+	chmod 700 -R $DUMP_BASE_DIR
+}
 
-# 2. Establish the dump's output directory
-[ "$out" == "" ] && out="/var/mongo/dumps/$dump_dir"
+# 1. Create the dump base directory if it does not exist
+if [ ! -d "/var/mongo/dumps" ]; then
+	mkdir -p $DUMP_BASE_DIR
+fi
+set-dumps-base-perms
 
-# 3. Create the dump's output directory if necessary
-[ ! -d $out ] && mkdir -p $out
-
-# 4. Create a database dump and place it in the output directory
-mongodump --out $out \
-	      --username $(cat /run/secrets/db-root-user) \
-	      --password $(cat /run/secrets/db-root-pass) \
-	      --authenticationDatabase admin \
+# 2. Create a timestamped database dump in the dumps base directory
+mongodump --out $dump_dir \
+	      --username $(cat $USER_NAME_FILE) \
+	      --password $(cat $USER_PASS_FILE) \
+	      --authenticationDatabase $AUTH_DB \
 	      --ssl \
-	      --sslCAFile /etc/ssl/certs/flags/root.crt
+	      --sslCAFile $SSL_CA_FILE
