@@ -235,8 +235,6 @@ def formatted_now(fmt="%Y/%m/%d %H:%M:%S %Z"):
 def log_harvest(status, storage, start_time, n_harvested=None, err=None):
     if status.lower() not in ['success', 'failure']:
         raise ValueError("Status must be either 'success' or 'failure'.")
-    if not os.path.exists("logs"):
-        os.makedirs("logs")
     with open("logs/Harvest-Result.txt", "wt") as log:
         log.write(f"Harvest status: {status.upper()}\n")
         log.write(f"Date/time of completing harvest: {formatted_now()}\n")
