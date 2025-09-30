@@ -4,6 +4,7 @@ import json
 import os
 import re
 import traceback
+import argparse
 import requests
 from bs4 import BeautifulSoup
 import pymongo
@@ -235,6 +236,8 @@ def formatted_now(fmt="%Y/%m/%d %H:%M:%S %Z"):
 def log_harvest(status, storage, start_time, n_harvested=None, err=None):
     if status.lower() not in ['success', 'failure']:
         raise ValueError("Status must be either 'success' or 'failure'.")
+    if not os.path.exists("logs"):
+        os.makedirs("logs")
     with open("logs/Harvest-Result.txt", "wt") as log:
         log.write(f"Harvest status: {status.upper()}\n")
         log.write(f"Date/time of completing harvest: {formatted_now()}\n")
@@ -272,34 +275,55 @@ def log_error(log, err):
     log.write(f"Error details:\n{"\n".join(traceback.format_exception(err))}\n")
 
 
-start_time = datetime.now(timezone.utc)
-storage = "db"
-try:
-    config = load_config()
-    with requests.Session() as session:
-        table = get_data_table(session)
-        n_harvested = 0
-        init_data_dir()
-        corrections = load_corrections()
-        start, end = 1, len(table) # Skip the first row, which is the table's header
-        for i in range(start, end):
-            is_primary_flag_row = table[i].find("th") is not None
-            if is_primary_flag_row:
-                n_harvested += 1
-                country_name = get_country_name(table[i])
-                soup = get_country_soup(table[i], session)
-                country_iso = get_country_iso_code(soup)
-                country_capital = get_country_capital(soup)
-                country_flag = get_country_flag(table[i], session)
-                country = Country(
-                    name=country_name,
-                    iso=country_iso,
-                    capital=country_capital,
-                    flag=country_flag
-                )
-                update_country_record(storage, country)
-                print_progress(table[i], n_harvested)
-        log_harvest('success', storage, start_time, n_harvested)
-except Exception as e:
-    log_harvest('failure', storage, start_time, err=e)
-    raise
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Harvest country data and flags from Wikipedia."
+    )
+    parser.add_argument(
+        '--storage',
+        type=str,
+        choices=['fs', 'db', 'fs-db'],
+        default='db',
+        help='Destination to store harvested data. '
+             'Options: "fs" (local file system), '
+             '"db" (MongoDB), '
+             '"fs-db" (both local file system and MongoDB). '
+             'Default is "db".'
+    )
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = parse_args()
+    storage = args.storage
+    start_time = datetime.now(timezone.utc)
+    try:
+        config = load_config()
+        with requests.Session() as session:
+            table = get_data_table(session)
+            n_harvested = 0
+            init_data_dir()
+            corrections = load_corrections()
+            start, end = 1, len(table) # Skip the first row, which is the table's header
+            for i in range(start, end):
+                is_primary_flag_row = table[i].find("th") is not None
+                if is_primary_flag_row:
+                    n_harvested += 1
+                    country_name = get_country_name(table[i])
+                    soup = get_country_soup(table[i], session)
+                    country_iso = get_country_iso_code(soup)
+                    country_capital = get_country_capital(soup)
+                    country_flag = get_country_flag(table[i], session)
+                    country = Country(
+                        name=country_name,
+                        iso=country_iso,
+                        capital=country_capital,
+                        flag=country_flag
+                    )
+                    update_country_record(storage, country)
+                    print_progress(table[i], n_harvested)
+            log_harvest('success', storage, start_time, n_harvested)
+    except Exception as e:
+        log_harvest('failure', storage, start_time, err=e)
+        raise
