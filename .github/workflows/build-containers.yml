@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     if: ${{ github.ref_type == 'tag' && github.event.base_ref == 'refs/heads/ci-cd' }}
-    # todo: change branch to main
+    # todo: change branch to "main"
     runs-on: ubuntu-latest
     steps:
       - name: Login to GitHub Container Registry
@@ -25,11 +25,9 @@ jobs:
           images: ghcr.io/flags/data-harvester
           tags: |
             type=semver,pattern={{raw}}
-      # - name: Build and push image
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: .
-      #     push: true
-      #     tags:  
-      #       ghcr.io/flags/data-harvester:latest
-      #       ghcr.io/flags/data-harvester:1.0.0
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
