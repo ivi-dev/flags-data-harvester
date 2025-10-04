@@ -3,6 +3,7 @@ FROM python:3.12-alpine3.22
 ENV APP_HOME=/opt/flags \
     USER="flags-data-harvester"
 
+RUN apk update && apk add openssl
 RUN mkdir $APP_HOME
 WORKDIR $APP_HOME
 COPY . .
