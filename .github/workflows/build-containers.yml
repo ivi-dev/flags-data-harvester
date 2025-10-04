@@ -2,9 +2,6 @@ name: Build container
 run-name: Build container
 on:
   push:
-    branches:
-      - ci-cd
-      # main
     tags:
       - 'v*.*.*'
 jobs:
