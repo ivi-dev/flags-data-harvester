@@ -1,0 +1,13 @@
+name: Build container
+run-name: Build and push container
+on:
+  push:
+    branches:
+      - ci-cd
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - run: ls -l
