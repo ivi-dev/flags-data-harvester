@@ -26,7 +26,7 @@ jobs:
           images: ghcr.io/flags/data-harvester
           tags: |
             type=semver,pattern={{raw}}
-      - run: echo "IMAGE_TAGS=${{ steps.meta.outputs.tags }}"
+      - run: echo ${{ toJSON(github.event) }}
       # - name: Build and push image
       #   uses: docker/build-push-action@v6
       #   with:
