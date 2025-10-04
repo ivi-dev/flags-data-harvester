@@ -9,6 +9,7 @@ on:
       - 'v*.*.*'
 jobs:
   build:
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - name: Login to GitHub Container Registry
