@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 jobs:
   build:
-    if: ${{ github.ref_type == 'tag' }}
+    if: ${{ github.ref_type == 'tag' && github.ref == 'refs/heads/ci-cd' }}
     runs-on: ubuntu-latest
     steps:
       - name: Login to GitHub Container Registry
