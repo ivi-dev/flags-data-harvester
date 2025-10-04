@@ -7,7 +7,7 @@ on:
 jobs:
   build:
     if: ${{ github.ref_type == 'tag' && github.event.base_ref == 'refs/heads/ci-cd' }}
-    # todo: change branch to "main"
+    # TODO: change branch to "main"
     runs-on: ubuntu-latest
     steps:
       - name: Login to GitHub Container Registry
