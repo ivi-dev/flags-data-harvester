@@ -8,6 +8,7 @@ jobs:
   build:
     if: ${{ github.ref_type == 'tag' && github.event.base_ref == 'refs/heads/ci-cd' }}
     # TODO: change branch to "main"
+    # TODO: add "config.json"
     runs-on: ubuntu-latest
     env:
       CONTAINER_REGISTRY: ghcr.io
@@ -36,5 +37,7 @@ jobs:
         with:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          # annotations: ${{ steps.meta.outputs.annotations }}
+          annotations:
+            org.opencontainers.image.description="Data Harvester is a tool for harvesting and processing data from various sources."
           labels: ${{ steps.meta.outputs.labels }}
