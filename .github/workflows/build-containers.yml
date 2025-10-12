@@ -7,8 +7,10 @@ on:
 jobs:
   build:
     if: ${{ github.ref_type == 'tag' && github.event.base_ref == 'refs/heads/ci-cd' }}
-    # TODO: change branch to "main" 
+    # TODO: change branch to "main"
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
