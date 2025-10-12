@@ -35,5 +35,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          labels: ${{ steps.meta.outputs.labels }}
