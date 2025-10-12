@@ -24,7 +24,7 @@ jobs:
         with:
           images: ghcr.io/flags/data-harvester
           tags: |
-            type=semver,pattern={{raw}}
+            type=semver,pattern={{version}}
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
