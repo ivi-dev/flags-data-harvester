@@ -1,6 +1,6 @@
 .*
 data
-db
+DB
 scripts
 Dockerfile
 logs
