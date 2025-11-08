@@ -12,7 +12,7 @@
         "connectTimeout": 0
     },
     "iso3166ColId": "",
-    "user-agent": {
+    "userAgent": {
         "name": {
             "human": "",
             "machine": ""

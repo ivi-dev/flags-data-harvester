@@ -163,13 +163,13 @@ def get_country_name(tag):
 
 def get_user_agent():
     bot_name = {
-        'human': f'{get_config_value("user-agent.name.human")}/' \
-                 f'{get_config_value("user-agent.version")}',
-        'machine': f'{get_config_value("user-agent.name.machine")}/' \
-                   f'{get_config_value("user-agent.version")}'
+        'human': f'{get_config_value("userAgent.name.human")}/' \
+                 f'{get_config_value("userAgent.version")}',
+        'machine': f'{get_config_value("userAgent.name.machine")}/' \
+                   f'{get_config_value("userAgent.version")}'
     }
     return f'{bot_name["human"]} ' + \
-           f'({get_config_value("user-agent.email")}) ' + \
+           f'({get_config_value("userAgent.email")}) ' + \
            f'{bot_name["machine"]}'
 
 
