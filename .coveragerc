@@ -1,0 +1,9 @@
+[run]
+branch = True
+omit = 
+    tests/*
+
+[report]
+precision = 2
+show_missing = True
+sort = -cover
