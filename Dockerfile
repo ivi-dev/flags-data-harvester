@@ -7,7 +7,7 @@ RUN apk update && apk add openssl
 RUN mkdir $APP_HOME
 WORKDIR $APP_HOME
 COPY . .
-RUN pip install -r $APP_HOME/requirements.txt
+RUN pip install -r requirements.txt
 RUN adduser -D -u 1001 -H -s /sbin/nologin $USER
 RUN chown -R $USER:$USER $APP_HOME && \
     chmod -R 700 $APP_HOME
