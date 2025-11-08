@@ -12,6 +12,8 @@ import pymongo
 
 config = {}
 
+CONFIG_ENVIRON_PREFIX = "FLAGS_DATA_HARVESTER_"
+
 corrections = {}
 
 db_client = None
@@ -29,19 +31,26 @@ class Country:
     flag: bytes
 
 
-def load_config():
+def try_load_config():
     try:
         with open("config.json") as config_file:
             return json.load(config_file)
     except FileNotFoundError:
-        raise Exception("Config file not found.")
+        return None
     except json.JSONDecodeError:
         raise Exception("Error decoding JSON from config file.")
 
 
+def get_config_value(key, default=None):
+    if config is None: # Config file is absent, use environment variables instead
+        key_ = f"{CONFIG_ENVIRON_PREFIX}{key.replace('.', '_').upper()}"
+        return os.environ.get(key_, default)
+    return config.get(key, default)
+
+
 def init_data_dir():
-    if not os.path.exists(config["dataPath"]):
-        os.makedirs(config["dataPath"])
+    if not os.path.exists(get_config_value("dataPath")):
+        os.makedirs(get_config_value("dataPath"))
 
 
 def update_country_record(dest, country):
@@ -49,17 +58,17 @@ def update_country_record(dest, country):
         global db, db_client, countries
         if db_client is None:
             uri = f'mongodb://' \
-                  f'{config["db"]["user"]}:' \
-                  f'{config["db"]["pass"]}@' \
-                  f'{config["db"]["host"]}:' \
-                  f'{config["db"]["port"]}/' \
-                  f'{config["db"]["name"]}?' \
-                  f'authSource={config["db"]["authSource"]}&' \
-                  f'connectTimeoutMS={config["db"]["connectTimeout"]}&' \
+                  f'{get_config_value("db.user")}:' \
+                  f'{get_config_value("db.pass")}@' \
+                  f'{get_config_value("db.host")}:' \
+                  f'{get_config_value("db.port")}/' \
+                  f'{get_config_value("db.name")}?' \
+                  f'authSource={get_config_value("dbauthSource")}&' \
+                  f'connectTimeoutMS={get_config_value("dbconnectTimeout")}&' \
                   'tls=true&' \
                   'tlsCAFile=/etc/ssl/certs/flags/root.crt'
             db_client = pymongo.MongoClient(uri)
-            db = db_client[config["db"]["name"]]
+            db = db_client[get_config_value("db.name")]
             countries = db.countries
         update_country_db(country)
 
@@ -79,7 +88,7 @@ def update_country_record(dest, country):
 
 
 def update_country_dir(country):
-    country_dir = os.path.join(config["dataPath"], country.name)
+    country_dir = os.path.join(get_config_value("dataPath"), country.name)
     if not os.path.exists(country_dir):
         os.makedirs(country_dir)
     init_country_meta(country_dir, country)
@@ -134,11 +143,11 @@ def country_name_spans_multiple_rows(col):
 
 
 def iso_3166_column(tag):
-    return "title" in tag.attrs and config["iso3166ColId"] in tag["title"]
+    return "title" in tag.attrs and get_config_value("iso3166ColId") in tag["title"]
 
 
 def get_data_table(session=None):
-    res = request(url=config["dataUrl"], method='GET', session=session)
+    res = request(url=get_config_value("dataUrl"), method='GET', session=session)
     soup = BeautifulSoup(res.text, features="html.parser")
     rows = soup.find("table", class_="wikitable").find("tbody").find_all("tr")
     return rows
@@ -154,11 +163,13 @@ def get_country_name(tag):
 
 def get_user_agent():
     bot_name = {
-        'human': f'{config["user-agent"]["name"]["human"]}/{config["user-agent"]["version"]}',
-        'machine': f'{config["user-agent"]["name"]["machine"]}/{config["user-agent"]["version"]}'
+        'human': f'{get_config_value("user-agent.name.human")}/' \
+                 f'{get_config_value("user-agent.version")}',
+        'machine': f'{get_config_value("user-agent.name.machine")}/' \
+                   f'{get_config_value("user-agent.version")}'
     }
     return f'{bot_name["human"]} ' + \
-           f'({config["user-agent"]["email"]}) ' + \
+           f'({get_config_value("user-agent.email")}) ' + \
            f'{bot_name["machine"]}'
 
 
@@ -251,23 +262,23 @@ def log_success(log, storage, start_time, n_harvested):
     duration = datetime.now(timezone.utc) - start_time
     log.write(f"Harvest duration: {str(duration)}\n")
     log.write(f"Number of harvested countries: {n_harvested}\n")
-    log.write(f"Harvesting source: \"{config["dataUrl"]}\"\n")
-    dataPath = os.path.abspath(config["dataPath"])
+    log.write(f"Harvesting source: \"{get_config_value("dataUrl")}\"\n")
+    dataPath = os.path.abspath(get_config_value("dataPath"))
     if storage == "fs":
         harvestDest = f"Local file system directory \"{dataPath}\""
     elif storage == "db":
         harvestDest = f"MongDB " \
-                      f"(host) \"{config['db']['host']}\", " \
-                      f"(port) {config['db']['port']}, " \
-                      f"(name) \"{config['db']['name']}\", " \
-                      f"(collection) \"{config['db']['collection']}\"\n"
+                      f"(host) \"{get_config_value('db.host')}\", " \
+                      f"(port) {get_config_value('db.port')}, " \
+                      f"(name) \"{get_config_value('db.name')}\", " \
+                      f"(collection) \"{get_config_value('db.collection')}\"\n"
     elif storage == "fs-db":
         harvestDest = f"Both local file system directory \"{dataPath}\" and " \
                       "MongDB " \
-                      f"(host) \"{config['db']['host']}\", " \
-                      f"(port) {config['db']['port']}, " \
-                      f"(name) \"{config['db']['name']}\", " \
-                      f"(collection) \"{config['db']['collection']}\"\n"
+                      f"(host) \"{get_config_value('db.host')}\", " \
+                      f"(port) {get_config_value('db.port')}, " \
+                      f"(name) \"{get_config_value('db.name')}\", " \
+                      f"(collection) \"{get_config_value('db.collection')}\"\n"
     log.write(f"Harvested data is at: {harvestDest}")
 
 
@@ -299,7 +310,7 @@ if __name__ == "__main__":
     storage = args.storage
     start_time = datetime.now(timezone.utc)
     try:
-        config = load_config()
+        config = try_load_config()
         with requests.Session() as session:
             table = get_data_table(session)
             n_harvested = 0
