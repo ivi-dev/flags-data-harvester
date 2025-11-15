@@ -14,6 +14,8 @@ config = {}
 
 CONFIG_ENVIRON_PREFIX = "FLAGS_DATA_HARVESTER_"
 
+SECRET_FILE_PATH_PREFIX = "/run/secrets/"
+
 corrections = {}
 
 db_client = None
@@ -41,11 +43,25 @@ def try_load_config():
         raise Exception("Error decoding JSON from config file.")
 
 
-def get_config_value(key, default=None):
-    if config is None: # Config file is absent, use environment variables instead
+def get_config_value(key):
+    if config is None: # Config file is absent, try using environment variables instead
         key_ = f"{CONFIG_ENVIRON_PREFIX}{key.replace('.', '_').upper()}"
-        return os.environ.get(key_, default)
-    return config.get(key, default)
+        try:
+            return os.environ[key_]
+        except KeyError: # Environment variable is absent too, try reading a 'secret' file
+            with open(f"{SECRET_FILE_PATH_PREFIX}{key}") as secret_file:
+                return secret_file.read().strip()
+    # Drill down into nested config values
+    path = key.split(".")
+    value = None
+    temp = config
+    for segment in path:
+        try:
+            temp = temp[segment]
+        except KeyError:
+            raise KeyError(f"Key '{key}' not found in config.")
+        value = temp
+    return value
 
 
 def init_data_dir():
